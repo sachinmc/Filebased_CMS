@@ -1,0 +1,7 @@
+<p style="font-size: 14pt">Edit content of <%= @filename %>:</p>
+<form action="/<%= @filename %>" method="post">
+  <textarea name="textarea" style="width:600px; height:400px; font-size: 12pt"><%= @content %>
+  </textarea>
+  <br>
+  <button type="submit" style="font-size: 14pt">Save Changes</button>
+</form>

@@ -60,7 +60,7 @@ class CMSTest < MiniTest::Test
   end
 
   def test_updating_document
-    post "/changes.txt", content: "new content"
+    post "/changes.txt", textarea: "new content"
 
     assert_equal 302, last_response.status
 

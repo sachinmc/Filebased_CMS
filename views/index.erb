@@ -1,13 +1,21 @@
-  <ul>
-    <% @files.each do |file| %>
-      <li>
-        <a href="/<%= file %>"><%=  file %></a>
-        <a href="/<%= file %>/edit">edit</a>
-        <form class="inline" method="post" action="/<%= file %>/delete">
-          <button type="submit">delete</button>
-        </form>
-      </li>
-    <% end %>
-  </ul>
 
-  <p><a href="/new"> New Document </a></p>
+<ul>
+  <% @files.each do |file| %>
+    <li>
+      <a href="/<%= file %>"><%=  file %></a>
+      <a href="/<%= file %>/edit">edit</a>
+      <form class="inline" method="post" action="/<%= file %>/delete">
+        <button type="submit">delete</button>
+      </form>
+    </li>
+  <% end %>
+</ul>
+
+<p><a href="/new"> New Document </a></p>
+
+<% if session[:users] %>
+  <p><i>Signed in as <%= session[:users].keys.join %>.</i></p>
+  <form class="inline" method="post" action="/signout">
+    <button type="submit" style="font-size: 10pt">Sign out</button>
+  </form>
+<% end %>

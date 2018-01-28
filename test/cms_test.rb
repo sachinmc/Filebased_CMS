@@ -21,6 +21,10 @@ class CMSTest < MiniTest::Test
     FileUtils.rm_rf(data_path)
   end
 
+  def session
+    last_request.env["rack.session"]
+  end
+
   def create_document(name, content = "")
     File.open(File.join(data_path, name), "w") do |file|
       file.write(content)
@@ -49,16 +53,11 @@ class CMSTest < MiniTest::Test
     assert_includes last_response.body, "Ruby 0.95 released"
   end
 
-  def test_nonexistent_document
-    get "/ufo.txt" # Attempt to access a nonexistent file
+  def test_document_not_found
+    get "/notafile.ext" # Attempt to access a nonexistent file
 
     assert_equal 302, last_response.status # Assert that the user was redirected
-
-    get last_response["Location"] # Request the page that the user was redirected to
-
-    assert_equal 200, last_response.status
-
-    assert_includes last_response.body, "ufo.txt does not exist"
+    assert_equal "notafile.ext does not exist.", session[:message]
   end
 
   def test_viewing_md_document
@@ -81,19 +80,6 @@ class CMSTest < MiniTest::Test
 
   end
 
-  def test_updating_document
-    post "/changes.txt", textarea: "new content"
-
-    assert_equal 302, last_response.status
-
-    get last_response["Location"]
-
-    assert_includes last_response.body, "changes.txt has been updated"
-
-    get "/changes.txt"
-    assert_equal 200, last_response.status
-    assert_includes last_response.body, "new content"
-  end
 
   def test_view_new_document_form
     get '/new'
@@ -134,41 +120,39 @@ class CMSTest < MiniTest::Test
   end
 
   def test_signin_form
-    get '/users/signin'
+    get "/users/signin"
 
     assert_equal 200, last_response.status
-    assert_includes last_response.body, %q(<label for="username">Username:)
+    assert_includes last_response.body, "<input"
+    assert_includes last_response.body, %q(<button type="submit")
   end
 
   def test_signin
-    post '/users/signin', username: "admin", password: "secret"
+    post "/users/signin", username: "admin", password: "secret"
     assert_equal 302, last_response.status
 
     get last_response["Location"]
-
-    assert_includes last_response.body, "Welcome!"
-    assert_includes last_response.body, "admin"
+    assert_includes last_response.body, "Welcome"
+    assert_includes last_response.body, "Signed in as admin"
   end
 
-  def test_signin_fail
-    post '/users/signin', username: "admin", password: "password"
-
-    assert_equal 442, last_response.status
-    assert_includes last_response.body, "Invalid Credentials"
-    assert_includes last_response.body, %q(<button type="submit">Sign In</button>)
+  def test_signin_with_bad_credentials
+    post "/users/signin", username: "guest", password: "shhhh"
+    assert_equal 422, last_response.status
+    assert_includes last_response.body, "Invalid credentials"
   end
 
   def test_signout
-    post '/users/signin', username: "admin", password: "secret"
+    post "/users/signin", username: "admin", password: "secret"
+    get last_response["Location"]
+    assert_includes last_response.body, "Welcome"
 
-    post '/signout'
-    assert_equal 302, last_response.status
-
+    post "/users/signout"
     get last_response["Location"]
 
-    assert_equal 200, last_response.status
-    assert_includes last_response.body, "You have been signed out."
+    assert_includes last_response.body, "You have been signed out"
     assert_includes last_response.body, "Sign In"
-
   end
+
+
 end

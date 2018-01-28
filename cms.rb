@@ -34,6 +34,17 @@ def data_path
   end
 end
 
+def user_signed_in?
+  session.key? :username
+end
+
+def require_signed_in_user
+  unless user_signed_in?
+    session[:message] = "You must be signed in to do that."
+    redirect '/'
+  end
+end
+
 # render index or front page
 get '/' do
 
@@ -68,11 +79,15 @@ end
 
 # display page to create a new file
 get '/new' do
+  require_signed_in_user
+
   erb :new
 end
 
 # create a new file and save to Filesystem
 post '/create' do
+  require_signed_in_user
+
   filename = params[:filename]
   if filename.size == 0
     session[:message] = "A name is required."
@@ -102,6 +117,8 @@ end
 
 # display page to edit a file
 get '/:filename/edit' do
+  require_signed_in_user
+
   file_path = File.join(data_path, params[:filename])
 
   @filename = params[:filename]
@@ -112,6 +129,8 @@ end
 
 # edit and submit file changes
 post '/:filename' do
+  require_signed_in_user
+
   file_path = File.join(data_path, params[:filename])
 
   File.write(file_path, params[:textarea])
@@ -122,6 +141,8 @@ end
 
 # delete a file
 post '/:filename/delete' do
+  require_signed_in_user
+
   file_path = File.join(data_path, params[:filename])
 
   File.delete(file_path)

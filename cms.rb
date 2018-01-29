@@ -2,6 +2,8 @@ require 'sinatra'
 require 'sinatra/reloader'
 require 'tilt/erubis'
 require 'redcarpet'
+require 'yaml'
+require 'bcrypt'
 
 configure do
   enable :sessions
@@ -45,6 +47,28 @@ def require_signed_in_user
   end
 end
 
+
+def load_user_credentials
+  credentials_path = if ENV["RACK_ENV"] == "test"
+    File.expand_path("../test/users.yaml", __FILE__)
+  else
+    File.expand_path("../users.yaml", __FILE__)
+  end
+  YAML.load_file(credentials_path)
+end
+
+def valid_credentials?(username, password)
+  credentials = load_user_credentials
+
+  if credentials.key? username
+    bcrypt_password = BCrypt::Password.new(credentials[username])
+    bcrypt_password == password
+  else
+    false
+  end
+end
+
+
 # render index or front page
 get '/' do
 
@@ -60,7 +84,9 @@ get '/users/signin' do
 end
 
 post '/users/signin' do
-  if params[:username] == "admin" && params[:password] == "secret"
+  username = params[:username]
+
+  if valid_credentials?(username, params[:password])
     session[:username] = params[:username]
     session[:message] = "Welcome!"
     redirect '/'

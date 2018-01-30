@@ -36,6 +36,14 @@ def data_path
   end
 end
 
+def user_path
+  if ENV["RACK_ENV"] == "test"
+    File.expand_path("../test/users.yaml", __FILE__)
+  else
+    File.expand_path("../users.yaml", __FILE__)
+  end
+end
+
 def user_signed_in?
   session.key? :username
 end
@@ -46,7 +54,6 @@ def require_signed_in_user
     redirect '/'
   end
 end
-
 
 def load_user_credentials
   credentials_path = if ENV["RACK_ENV"] == "test"
@@ -68,6 +75,10 @@ def valid_credentials?(username, password)
   end
 end
 
+# Validate that document names contain an extension that the application supports
+def validate_file_ext?(filename)
+  %w(.md .txt).include? File.extname(filename)
+end
 
 # render index or front page
 get '/' do
@@ -103,6 +114,24 @@ post '/signout' do
   redirect '/'
 end
 
+get '/users/signup' do
+  erb :signup
+end
+
+post '/users/signup' do
+  username = params[:username]
+  password = params[:password]
+
+  new_user = "  #{username}: \"#{BCrypt::Password.create(password)}\""
+
+  File.open(user_path, 'a') do |file|
+    file.puts new_user
+  end
+
+  session[:message] = "New user #{username} created."
+  redirect '/'
+end
+
 # display page to create a new file
 get '/new' do
   require_signed_in_user
@@ -114,9 +143,14 @@ end
 post '/create' do
   require_signed_in_user
 
-  filename = params[:filename]
+  filename = params[:filename].strip
+
   if filename.size == 0
     session[:message] = "A name is required."
+    status 422
+    erb :new
+  elsif !validate_file_ext?(filename)
+    session[:message] = "Unsupported extension"
     status 422
     erb :new
   else
@@ -127,6 +161,27 @@ post '/create' do
     session[:message] = "#{filename} was created."
     redirect '/'
   end
+end
+
+# Creating new document based on an old one (duplicates)
+post '/:filename/duplicate' do
+  require_signed_in_user
+
+  filename = params[:filename]
+
+  file, ext = filename.split(".")
+
+  session[filename] ||= []
+  session[filename] <<  file + "#{session[filename].size}" + ".#{ext}"
+  file_path = File.join(data_path, session[filename].last)
+
+  org_file_content = File.read(File.join(data_path, filename))
+
+  File.write(file_path, "#{org_file_content}")
+
+  session[:message] = "#{filename} duplicate created."
+
+  redirect '/'
 end
 
 # display file contents

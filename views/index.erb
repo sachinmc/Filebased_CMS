@@ -1,9 +1,12 @@
 
 <ul>
-  <% @files.each do |file| %>
+  <% @files.sort.each do |file| %>
     <li>
       <a href="/<%= file %>"><%=  file %></a>
       <a href="/<%= file %>/edit">edit</a>
+      <form class="inline" method="post" action="/<%= file %>/duplicate">
+        <button type="submit">duplicate</button>
+      </form>
       <form class="inline" method="post" action="/<%= file %>/delete">
         <button type="submit">delete</button>
       </form>
@@ -22,4 +25,5 @@
   </form>
   <% else %>
     <p class="user-status"><a href="/users/signin">Sign In</p>
+    <p class="user-status"><a href="/users/signup">Sign Up</p>
 <% end %>

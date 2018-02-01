@@ -10,6 +10,7 @@
       <form class="inline" method="post" action="/<%= file %>/delete">
         <button type="submit">delete</button>
       </form>
+      <a href="/<%= file %>/version">version history</a>
     </li>
   <% end %>
 </ul>
@@ -17,6 +18,12 @@
 <p><a href="/new"> New Document </a></p>
 
 <% if session[:username] %>
+
+  <form action="/upload/image" method="post">
+    <button type="submit">Upload Image</button>
+    <input name="image" value="image url"/>
+  </form>
+
   <form method="post" action="/signout">
     <p class="user-status">
       Signed in as <%= session[:username] %>.

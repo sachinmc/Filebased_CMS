@@ -4,6 +4,7 @@ require 'tilt/erubis'
 require 'redcarpet'
 require 'yaml'
 require 'bcrypt'
+require 'open-uri'
 
 configure do
   enable :sessions
@@ -25,6 +26,9 @@ def load_file_content(path)
     content
   when ".md"
     render_markdown(content)
+  when ".jpg"
+    content_type "image/jpeg"
+    content
   end
 end
 
@@ -172,7 +176,7 @@ post '/:filename/duplicate' do
   file, ext = filename.split(".")
 
   session[filename] ||= []
-  session[filename] <<  file + "#{session[filename].size}" + ".#{ext}"
+  session[filename] <<  (file + "#{session[filename].size}" + ".#{ext}")
   file_path = File.join(data_path, session[filename].last)
 
   org_file_content = File.read(File.join(data_path, filename))
@@ -196,6 +200,12 @@ get '/:filename' do
   end
 end
 
+get '/:filename/version' do
+  @history = session[params[:filename] + "ver"]
+
+  erb :version
+end
+
 # display page to edit a file
 get '/:filename/edit' do
   require_signed_in_user
@@ -212,11 +222,45 @@ end
 post '/:filename' do
   require_signed_in_user
 
-  file_path = File.join(data_path, params[:filename])
+  filename = params[:filename]
+  content = params[:textarea]
 
-  File.write(file_path, params[:textarea])
+  file_path = File.join(data_path, filename)
 
-  session[:message] = "#{params[:filename]} has been updated."
+  if File.exist? file_path
+
+    file, ext = filename.split(".")
+
+    session[filename + "ver"] ||= []
+    file_version = file + "v#{session[filename + "ver"].size}." + ext
+    session[filename + "ver"] << file_version
+
+    file_version_path = File.join(data_path, file_version)
+    File.write(file_version_path, File.read(file_path))
+
+    File.write(file_path, content)
+    session[:message] = "#{filename} has been updated."
+    redirect '/'
+  else
+    session[:message] = "#{filename} does not exist."
+    redirect '/'
+  end
+end
+
+post '/upload/image' do
+  img_url = params[:image]
+
+  session[img_url] ||=  []
+  session[img_url] << "image_file#{session[img_url].size}.jpg"
+
+  file_path = File.join(data_path, "#{session[img_url].last}")
+
+  url_file = open(img_url)
+  File.open(file_path, 'wb') do |file|
+    file << url_file.read
+  end
+
+  session[:message] = "Image uploaded"
   redirect '/'
 end
 

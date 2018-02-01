@@ -1,0 +1,11 @@
+<ul>
+  <% if @history == nil %>
+    <p> No version history yet</p>
+  <% else %>
+  <% @history.each do |file| %>
+    <li>
+      <a href="/<%= file %>"><%=  file %></a>
+    </li>
+  <% end %>
+  <% end %>
+</ul>
